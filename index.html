@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP2 - Gestion d'événements universitaires</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .msg {
+            display: flex;
+            margin: 12px 0;
+        }
+        .msg.user {
+            justify-content: flex-end;
+        }
+        .msg.bot {
+            justify-content: flex-start;
+        }
+        .msg-content {
+            padding: 10px 16px;
+            border-radius: 16px;
+            max-width: 70%;
+        }
+        .msg.user .msg-content {
+            background: #667eea;
+            color: white;
+        }
+        .msg.bot .msg-content {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+        .msg-icon {
+            font-size: 24px;
+            margin: 0 8px;
+        }
+    </style>
+</head>
+<body class="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 min-h-screen">
+    <div class="max-w-4xl mx-auto">
+        <!-- Formulaire de création d'événement -->
+        <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Créer un événement</h2>
+            <form id="eventForm" class="space-y-4">
+                <!-- Titre -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Titre</label>
+                    <input type="text" id="titre" name="titre" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Entrez le titre de l'événement">
+                </div>
+                
+                <!-- Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <input type="date" id="date" name="date" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <!-- Lieu -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Lieu</label>
+                    <input type="text" id="lieu" name="lieu" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Lieu de l'événement">
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="description" name="description" rows="4" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Description de l'événement"></textarea>
+                </div>
+                
+                <!-- Adresse -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+                    <input type="text" id="adresse" name="adresse"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        placeholder="Adresse complète">
+                    <button type="button" onclick="localiserAdresse()"
+                        class="mt-2 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                        Valider l'adresse
+                    </button>
+                </div>
+                
+                <!-- Carte -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Localisation</label>
+                    <div id="map" style="height: 400px; border-radius: 8px;"></div>
+                    <p class="text-xs text-gray-500 mt-2">Cliquez sur la carte pour sélectionner</p>
+                </div>
+                
+                <!-- Affiche (image) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Affiche</label>
+                    <input type="file" id="affiche" accept="image/*"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <img id="preview" class="hidden mt-2 rounded-lg max-w-xs">
+                </div>
+                
+                <!-- Fiche (PDF/TXT) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fiche (PDF/TXT)</label>
+                    <input type="file" id="fiche" accept=".pdf,.txt,.doc,.docx"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                
+                <!-- Bouton submit -->
+                <button type="submit"
+                    class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition transform hover:scale-105">
+                    Enregistrer l'événement
+                </button>
+            </form>
+        </section>
+
+        <!-- Liste des événements -->
+        <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Liste des événements</h2>
+            <ul id="eventsList" class="space-y-4"></ul>
+        </section>
+
+        <!-- Chatbot -->
+        <section class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Chatbot</h2>
+            <div id="chatbox" style="height: 300px; overflow-y: auto; padding: 16px; background: #f9fafb; border-radius: 8px; margin-bottom: 12px;">
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="question" placeholder="Posez votre question..."
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    onkeypress="if(event.key == 'Enter') askBot()">
+                <button onclick="askBot()"
+                    class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                    Envoyer
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Variables globales
+        const BASE_URL = "http://localhost:3000/events";
+        let eventsList = [];
+        let selectedEvent = null;
+        let marker = null;
+        let lat = null;
+        let lng = null;
+
+        // Initialisation de la carte
+        const map = L.map('map').setView([36.8, 10.18], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Clic sur la carte pour placer un marqueur
+        map.on('click', function(e) {
+            lat = e.latlng.lat;
+            lng = e.latlng.lng;
+            
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lng]).addTo(map);
+            
+            document.getElementById('adresse').value = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+        });
+
+        // Charger les événements au démarrage
+        async function fetchEvents() {
+            try {
+                const response = await fetch(BASE_URL);
+                eventsList = await response.json();
+                displayEvents(eventsList);
+            } catch (error) {
+                console.error("Erreur:", error);
+            }
+        }
+
+        // Afficher les événements
+        function displayEvents(events) {
+            const list = document.getElementById("eventsList");
+            list.innerHTML = "";
+            
+            if (events.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 italic">Aucun événement</p>';
+                return;
+            }
+            
+            events.forEach(event => {
+                const li = document.createElement("li");
+                li.className = 'bg-purple-50 p-4 rounded-lg border border-purple-200';
+                li.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-bold text-purple-700">${event.titre}</h3>
+                            <p class="text-sm text-gray-600">📅 ${event.date} - 📍 ${event.lieu}</p>
+                            <p class="text-gray-700 mt-2">${event.description}</p>
+                            ${event.adresse ? `<p class="text-sm text-gray-500 mt-1">📍 ${event.adresse}</p>` : ''}
+                        </div>
+                        <button onclick="deleteEvent(${event.id})"
+                            class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                            Supprimer
+                        </button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Soumission du formulaire
+        document.getElementById('eventForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('titre', document.getElementById('titre').value);
+            formData.append('date', document.getElementById('date').value);
+            formData.append('lieu', document.getElementById('lieu').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('adresse', document.getElementById('adresse').value);
+            
+            if (lat) formData.append('lat', lat);
+            if (lng) formData.append('lng', lng);
+            
+            const afficheFile = document.getElementById('affiche').files[0];
+            const ficheFile = document.getElementById('fiche').files[0];
+            
+            if (afficheFile) formData.append('affiche', afficheFile);
+            if (ficheFile) formData.append('fiche', ficheFile);
+            
+            try {
+                const response = await fetch(BASE_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const newEvent = await response.json();
+                    alert('Événement créé avec succès!');
+                    fetchEvents();
+                    document.getElementById('eventForm').reset();
+                    if (marker) {
+                        map.removeLayer(marker);
+                        marker = null;
+                    }
+                    lat = null;
+                    lng = null;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la création');
+            }
+        });
+
+        // Suppression d'un événement
+        async function deleteEvent(id) {
+            if (!confirm('Voulez-vous vraiment supprimer cet événement?')) return;
+            
+            try {
+                const response = await fetch(`${BASE_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Événement supprimé!');
+                    fetchEvents();
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Géolocalisation par adresse
+        function localiserAdresse() {
+            const adr = document.getElementById('adresse').value;
+            if (!adr) {
+                alert('Veuillez entrer une adresse');
+                return;
+            }
+            
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adr)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        lat = parseFloat(data[0].lat);
+                        lng = parseFloat(data[0].lon);
+                        
+                        if (marker) map.removeLayer(marker);
+                        marker = L.marker([lat, lng]).addTo(map);
+                        map.setView([lat, lng], 14);
+                        alert('Adresse localisée avec succès!');
+                    } else {
+                        alert('Adresse introuvable');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Erreur lors de la géolocalisation');
+                });
+        }
+
+        // Chatbot - Ajouter un message
+        function addMsg(text, type) {
+            const chatbot = document.getElementById('chatbox');
+            const icon = type === 'bot' ? '🤖' : '👤';
+            
+            chatbot.innerHTML += `
+                <div class="msg ${type}">
+                    ${type === 'bot' ? `<span class="msg-icon">${icon}</span>` : ''}
+                    <div class="msg-content">${text}</div>
+                    ${type === 'user' ? `<span class="msg-icon">${icon}</span>` : ''}
+                </div>
+            `;
+            chatbot.scrollTop = chatbot.scrollHeight;
+        }
+
+        // Chatbot - Traiter la question
+        function askBot() {
+            const questionInput = document.getElementById('question');
+            const q = questionInput.value.trim();
+            if (!q) return;
+            
+            addMsg(q, "user");
+            questionInput.value = "";
+            
+            if (!selectedEvent) {
+                const ev = eventsList.find(e => 
+                    e.titre.toLowerCase() === q.toLowerCase()
+                );
+                if (ev) {
+                    selectedEvent = ev;
+                    addMsg(`Événement "${selectedEvent.titre}" sélectionné. Posez vos questions sur la date, le lieu ou la description.`, "bot");
+                } else {
+                    addMsg(`Aucun événement nommé "${q}". Réessayez avec le nom exact.`, "bot");
+                }
+                return;
+            }
+            
+            let response = "Je ne dispose pas de cette information.";
+            const lq = q.toLowerCase();
+            
+            if (lq.includes("date")) {
+                response = `La date est : ${selectedEvent.date}`;
+            } else if (lq.includes("lieu")) {
+                response = `Le lieu est : ${selectedEvent.lieu}`;
+            } else if (lq.includes("description")) {
+                response = `Description : ${selectedEvent.description}`;
+            } else if (lq.includes("adresse")) {
+                response = selectedEvent.adresse 
+                    ? `Adresse : ${selectedEvent.adresse}` 
+                    : "Aucune adresse renseignée.";
+            } else if (lq.includes("changer") || lq.includes("autre")) {
+                selectedEvent = null;
+                response = "D'accord ! Quel événement voulez-vous interroger ?";
+            }
+            
+            addMsg(response, "bot");
+        }
+
+        // Initialisation au chargement de la page
+        window.addEventListener('DOMContentLoaded', function() {
+            fetchEvents();
+            addMsg("Bonjour ! Quel événement voulez-vous interroger ?", "bot");
+            
+            // Prévisualisation de l'image
+            document.getElementById('affiche').addEventListener('change', function(e) {
+                const preview = document.getElementById('preview');
+                const file = e.target.files[0];
+                
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

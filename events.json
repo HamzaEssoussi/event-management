@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1770104975189,
+    "titre": "Test",
+    "date": "2026-02-01",
+    "lieu": "Amphi A",
+    "description": "Test",
+    "adresse": "",
+    "lat": null,
+    "lng": null,
+    "affiche": null,
+    "fiche": null
+  },
+  {
+    "id": 1770106374374,
+    "titre": "adaidzleadcnz!oenzca!ocenaeochnz§OC",
+    "date": "2026-02-18",
+    "lieu": "ZZLCNZLOCNZ§PECINECJNZec!olnc!loZNVz!lovnPIJ",
+    "description": "eprovjqdùphjqerihqeohevoeiveoveovieoieqooeqùovi",
+    "adresse": "Lat: 35.8568, Lng: 10.5732",
+    "lat": "35.85683989509974",
+    "lng": "10.573187789781088",
+    "affiche": "e7668f0829a7e5e5d1e2d527d76bd099",
+    "fiche": "c5c0f69ad46adfbdd3dd2eb3bf240ac9"
+  }
+]
